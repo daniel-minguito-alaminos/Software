@@ -13,3 +13,8 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+
+# Node / frontend
+node_modules/
+dist/
+*.log
