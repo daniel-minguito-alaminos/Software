@@ -55,17 +55,67 @@ The project is currently under development.
 - `frontend/` — web application.
 - `README.md` — project overview and development instructions.
 
-### Backend setup
+### Backend setup — Windows PowerShell
 
-Backend installation and execution instructions will be added
-when the initial Python application is configured.
+Prerequisite: Python 3 with the `py` launcher installed.
 
+From the repository root:
 
-### Frontend setup
+```powershell
+cd backend
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-Frontend installation and execution instructions will be added
-when the frontend application is configured.
+Create a local `backend/.env` file containing the PostgreSQL connection
+URL supplied by the team:
 
+```dotenv
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+```
+
+Use the External Database URL when connecting from your laptop.
+Keep `.env` excluded from Git.
+
+Start the backend:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload
+```
+
+- API health: http://127.0.0.1:8000/health
+- Database connection check: http://127.0.0.1:8000/health/database
+- API documentation: http://127.0.0.1:8000/docs
+
+Stop the server with Ctrl+C.
+
+### Frontend setup — Windows PowerShell
+
+Prerequisite: A Node.js version supported by `frontend/package.json`.
+
+Open a separate terminal. From the repository root:
+
+```powershell
+cd frontend
+npm.cmd ci
+npm.cmd run dev
+```
+
+Open the Local URL printed in the terminal, usually
+http://localhost:5173/.
+
+Create a production build:
+
+```powershell
+npm.cmd run build
+```
+
+The build output is generated in `frontend/dist/`.
+
+The login and registration pages currently provide a UI preview.
+Backend authentication and email verification are pending.
+
+Stop the development server with Ctrl+C.
 
 ## Configuration
 
