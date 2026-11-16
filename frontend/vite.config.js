@@ -15,4 +15,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    // Requests to /api/* are forwarded to the FastAPI backend with the /api
+    // prefix removed (/api/auth/login -> http://127.0.0.1:8000/auth/login).
+    // The browser sees one origin, so the session cookie works without CORS.
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

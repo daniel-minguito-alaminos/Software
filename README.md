@@ -67,14 +67,23 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Create a local `backend/.env` file containing the PostgreSQL connection
-URL supplied by the team:
+Copy `backend/.env.example` to `backend/.env` and fill in the values:
 
 ```dotenv
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+JWT_SECRET_KEY="<random secret, at least 32 characters>"
+JWT_EXPIRE_MINUTES=60
+SESSION_COOKIE_SECURE=false
 ```
 
-Use the External Database URL when connecting from your laptop.
+- `DATABASE_URL`: the PostgreSQL connection URL supplied by the team.
+  Use the External Database URL when connecting from your laptop.
+- `JWT_SECRET_KEY`: signs the session tokens. Generate one with
+  `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- `JWT_EXPIRE_MINUTES`: how long a login session lasts.
+- `SESSION_COOKIE_SECURE`: must be `true` in production (HTTPS);
+  `false` for local development over HTTP.
+
 Keep `.env` excluded from Git.
 
 Start the backend:
@@ -88,6 +97,44 @@ Start the backend:
 - API documentation: http://127.0.0.1:8000/docs
 
 Stop the server with Ctrl+C.
+
+#### Test user (provisional)
+
+Registration and email verification are not implemented yet
+(BIZ-24 / BIZ-12). To log in, create a verified test user. The password
+is asked for interactively:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.create_test_user tester@example.com
+```
+
+The script creates the `users` table if needed. If the email already
+exists, its password is replaced and the user is marked as verified.
+
+The `User` model in `backend/models.py` is provisional (BIZ-32); the
+final user and organization schema (BIZ-34) will replace or extend it.
+
+#### Backend tests
+
+The tests use an in-memory SQLite database and never connect to the
+shared database.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest
+```
+
+#### Authentication endpoints
+
+The session is a JWT stored in the HttpOnly cookie `bpc_session`.
+All session handling lives in `backend/auth_session.py`; protect an
+endpoint with the `CurrentUser` dependency from that module.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/auth/login` | Body `{"email", "password"}`. Sets the session cookie. `401` for wrong credentials, `403` for unverified accounts. |
+| POST | `/auth/logout` | Clears the session cookie. Returns `204`. |
+| GET | `/auth/me` | Protected. Returns the logged-in user, or `401`. |
 
 ### Frontend setup — Windows PowerShell
 
@@ -112,15 +159,39 @@ npm.cmd run build
 
 The build output is generated in `frontend/dist/`.
 
-The login and registration pages currently provide a UI preview.
-Backend authentication and email verification are pending.
-
 Stop the development server with Ctrl+C.
+
+#### API proxy
+
+During development the frontend calls the backend through the Vite
+proxy configured in `frontend/vite.config.js`. Requests to `/api/*`
+are forwarded to `http://127.0.0.1:8000` with the `/api` prefix
+removed:
+
+| Frontend request | Backend endpoint |
+| --- | --- |
+| `/api/auth/login` | `/auth/login` |
+| `/api/auth/logout` | `/auth/logout` |
+| `/api/auth/me` | `/auth/me` |
+
+Backend routes are therefore defined without `/api`. Because the
+browser sees a single origin, the session cookie works without CORS.
+Start the backend before logging in from the frontend.
+
+#### Login and logout
+
+- `/login` signs in verified users and opens `/app`.
+- `/app` is a protected page; visitors without a session are redirected
+  to `/login`.
+- **Log out** in the header ends the session and returns to the home page.
+
+The registration page is still a UI preview; registration and email
+verification are pending (BIZ-24 / BIZ-12).
 
 ## Configuration
 
-Required environment variables will be documented in `.env.example`
-when the application configuration is established.
+Backend environment variables are listed in `backend/.env.example`
+(see Backend setup above).
 
 Do not commit:
 

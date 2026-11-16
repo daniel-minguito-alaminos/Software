@@ -4,7 +4,10 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import engine
+from routers import auth
+
 app = FastAPI(title="BizPartnerCheck API")
+app.include_router(auth.router)
 
 
 @app.get("/health")

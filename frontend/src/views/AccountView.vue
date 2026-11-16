@@ -1,9 +1,50 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { signIn } from '../auth/session'
 
-defineProps({ register: Boolean })
+const props = defineProps({ register: Boolean })
+const route = useRoute()
+const router = useRouter()
+
 const notice = ref(false)
+const email = ref('')
+const password = ref('')
+const error = ref('')
+const submitting = ref(false)
+
+// Only allow redirects to paths inside this app (no "//evil.example").
+function redirectTarget() {
+  const target = route.query.redirect
+  return typeof target === 'string' && target.startsWith('/') && !target.startsWith('//')
+    ? target
+    : '/app'
+}
+
+async function submit() {
+  if (props.register) {
+    // Registration is handled in BIZ-24 / BIZ-12; still a preview here.
+    notice.value = true
+    return
+  }
+
+  error.value = ''
+  submitting.value = true
+  try {
+    await signIn(email.value, password.value)
+    await router.replace(redirectTarget())
+  } catch (err) {
+    error.value = err.message
+    password.value = ''
+  } finally {
+    submitting.value = false
+  }
+}
+
+function clearMessages() {
+  notice.value = false
+  error.value = ''
+}
 </script>
 
 <template>
@@ -12,15 +53,18 @@ const notice = ref(false)
       <RouterLink to="/">← Back to home</RouterLink>
       <h1 id="account-title">{{ register ? 'Create an account' : 'Log in' }}</h1>
       <p v-if="register">Verify your email before setting a password.</p>
-      <form @submit.prevent="notice = true" @input="notice = false">
+      <form @submit.prevent="submit" @input="clearMessages">
         <div v-if="register" class="names">
           <label>First name <input name="firstName" autocomplete="given-name" required /></label>
           <label>Last name <input name="lastName" autocomplete="family-name" required /></label>
         </div>
-        <label>Work email <input name="email" type="email" :autocomplete="register ? 'email' : 'username'" required /></label>
+        <label>Work email <input v-model="email" name="email" type="email" :autocomplete="register ? 'email' : 'username'" required /></label>
         <label v-if="register">Organization number <input name="organizationNumber" required /></label>
-        <label v-else>Password <input name="password" type="password" autocomplete="current-password" required /></label>
-        <button class="button" type="submit">{{ register ? 'Continue' : 'Log in' }}</button>
+        <label v-else>Password <input v-model="password" name="password" type="password" autocomplete="current-password" required /></label>
+        <button class="button" type="submit" :disabled="submitting">
+          {{ register ? 'Continue' : submitting ? 'Logging in…' : 'Log in' }}
+        </button>
+        <p v-if="error" class="error" role="alert">{{ error }}</p>
         <p v-if="notice" class="notice" role="status">This form is a preview. Account services are pending.</p>
       </form>
       <p class="switch">
@@ -44,5 +88,7 @@ input { width: 100%; min-width: 0; border: 1px solid #93abc9; border-radius: 7px
 .names { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .switch { margin: 20px 0 0; }
 .notice { margin: 0; background: #eaf4fd; padding: 12px; border-radius: 7px; }
+.error { margin: 0; background: #fdecec; border: 1px solid #e3a5a5; color: #8a1c1c; padding: 12px; border-radius: 7px; }
+button:disabled { opacity: .7; cursor: wait; }
 @media (max-width: 390px) { .names { grid-template-columns: 1fr; } }
 </style>

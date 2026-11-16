@@ -1,5 +1,23 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { ref } from 'vue'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { currentUser, loadSession, signOut } from './auth/session'
+
+const router = useRouter()
+const signingOut = ref(false)
+
+// Know on every page (also public ones) whether someone is logged in.
+loadSession()
+
+async function logOut() {
+  signingOut.value = true
+  try {
+    await signOut()
+    await router.push('/')
+  } finally {
+    signingOut.value = false
+  }
+}
 </script>
 
 <template>
@@ -11,7 +29,14 @@ import { RouterLink, RouterView } from 'vue-router'
         </svg>
         BizPartnerCheck
       </RouterLink>
-      <nav aria-label="Account">
+      <nav v-if="currentUser" aria-label="Account">
+        <span class="user" :title="currentUser.email">{{ currentUser.email }}</span>
+        <RouterLink class="button outline" to="/app">Workspace</RouterLink>
+        <button class="button" type="button" :disabled="signingOut" @click="logOut">
+          {{ signingOut ? 'Logging out…' : 'Log out' }}
+        </button>
+      </nav>
+      <nav v-else aria-label="Account">
         <RouterLink class="button outline" to="/login">Log in</RouterLink>
         <RouterLink class="button" to="/register">Create an account</RouterLink>
       </nav>
@@ -32,6 +57,8 @@ body { margin: 0; background: #f3f8fd; color: #102e5b; font: 16px/1.5 system-ui,
 .site .button { display: inline-block; border: 1px solid #0847ae; border-radius: 7px; padding: 10px 17px; background: #0847ae; color: white; font: inherit; font-weight: 650; cursor: pointer; }
 .site .button:hover { background: #073680; color: white; }
 .site .outline { background: transparent; color: #0847ae; }
+.site .button:disabled { opacity: .7; cursor: wait; }
+.site .user { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .site :focus-visible { outline: 3px solid #376dc2; outline-offset: 4px; }
 .site h1 { color: #102e5b; line-height: 1.04; letter-spacing: -.045em; margin: 0 0 18px; }
 .site p { margin: 0 0 24px; }
