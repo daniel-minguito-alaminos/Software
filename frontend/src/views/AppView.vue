@@ -1,6 +1,7 @@
 <script setup>
 import { currentUser } from '../auth/session'
 import VatCheck from '../VatCheck.vue'
+import { RouterLink } from 'vue-router'
 </script>
 
 <!-- Protected application page (BIZ-32). Only reachable with a valid session. -->
@@ -10,6 +11,11 @@ import VatCheck from '../VatCheck.vue'
       <h1 id="app-title">Your workspace</h1>
       <p>
         Signed in as <strong>{{ currentUser?.email }}</strong>.
+      </p>
+      <p>
+        <RouterLink class="button outline" :to="{ name: 'check-history' }">
+         Check history
+        </RouterLink>
       </p>
       <VatCheck />
     </section>

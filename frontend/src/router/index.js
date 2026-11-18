@@ -4,6 +4,9 @@ import AccountView from '../views/AccountView.vue'
 import AppView from '../views/AppView.vue'
 import { loadSession } from '../auth/session'
 import SetPasswordView from '../views/SetPasswordView.vue'
+import CheckHistoryView from '../views/CheckHistoryView.vue'
+import CheckDetailsView from '../views/CheckDetailsView.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,6 +16,8 @@ const router = createRouter({
     { path: '/register', component: AccountView, props: { register: true } },
     { path: '/set-password', component: SetPasswordView },
     { path: '/app', component: AppView, meta: { requiresAuth: true } },
+    { path: '/app/checks', name: 'check-history', component: CheckHistoryView, meta: { requiresAuth: true },},
+    { path: '/app/checks/:id', name: 'check-details', component: CheckDetailsView, meta: { requiresAuth: true }, },
   ],
   scrollBehavior: () => ({ top: 0 }),
 })

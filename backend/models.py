@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import DateTime, UniqueConstraint
-from sqlmodel import Field, SQLModel
+from sqlmodel import JSON, Field, SQLModel
 
 
 def _utc_now() -> datetime:
@@ -68,3 +68,16 @@ class ApiToken(SQLModel, table=True):
     revoked_at: datetime | None = Field(
         default=None, sa_type=DateTime(timezone=True)
     )
+
+class PartnerCheck(SQLModel, table=True):
+    __tablename__ = "partner_checks"
+
+    id: int | None = Field(default=None, primary_key=True)
+    organization_id: int = Field(foreign_key="organizations.id", index=True)
+    initiated_by_user_id: int = Field(foreign_key="users.id")
+    identifier: str = Field(max_length=11)
+    checked_at: datetime = Field(
+        default_factory=_utc_now,
+        sa_type=DateTime(timezone=True),
+    )
+    sources: list[dict] = Field(sa_type=JSON)
