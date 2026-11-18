@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import AccountView from '../views/AccountView.vue'
 import AppView from '../views/AppView.vue'
 import { loadSession } from '../auth/session'
+import SetPasswordView from '../views/SetPasswordView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,6 +11,7 @@ const router = createRouter({
     { path: '/', component: HomeView },
     { path: '/login', component: AccountView, meta: { guestOnly: true } },
     { path: '/register', component: AccountView, props: { register: true } },
+    { path: '/set-password', component: SetPasswordView },
     { path: '/app', component: AppView, meta: { requiresAuth: true } },
   ],
   scrollBehavior: () => ({ top: 0 }),

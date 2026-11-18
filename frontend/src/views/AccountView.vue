@@ -1,19 +1,22 @@
 <script setup>
 import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { registerOrganization } from '../api/auth'
 import { signIn } from '../auth/session'
 
 const props = defineProps({ register: Boolean })
 const route = useRoute()
 const router = useRouter()
 
-const notice = ref(false)
+const firstName = ref('')
+const lastName = ref('')
+const organizationNumber = ref('')
 const email = ref('')
 const password = ref('')
+const notice = ref(false)
 const error = ref('')
 const submitting = ref(false)
 
-// Only allow redirects to paths inside this app (no "//evil.example").
 function redirectTarget() {
   const target = route.query.redirect
   return typeof target === 'string' && target.startsWith('/') && !target.startsWith('//')
@@ -21,16 +24,27 @@ function redirectTarget() {
     : '/app'
 }
 
-async function submit() {
-  if (props.register) {
-    // Registration is handled in BIZ-24 / BIZ-12; still a preview here.
-    notice.value = true
-    return
-  }
-
+function clearMessages() {
+  notice.value = false
   error.value = ''
+}
+
+async function submit() {
+  clearMessages()
   submitting.value = true
+
   try {
+    if (props.register) {
+      await registerOrganization({
+        firstName: firstName.value.trim(),
+        lastName: lastName.value.trim(),
+        email: email.value.trim(),
+        organizationNumber: organizationNumber.value.trim(),
+      })
+      notice.value = true
+      return
+    }
+
     await signIn(email.value, password.value)
     await router.replace(redirectTarget())
   } catch (err) {
@@ -40,11 +54,6 @@ async function submit() {
     submitting.value = false
   }
 }
-
-function clearMessages() {
-  notice.value = false
-  error.value = ''
-}
 </script>
 
 <template>
@@ -53,20 +62,56 @@ function clearMessages() {
       <RouterLink to="/">← Back to home</RouterLink>
       <h1 id="account-title">{{ register ? 'Create an account' : 'Log in' }}</h1>
       <p v-if="register">Verify your email before setting a password.</p>
+
       <form @submit.prevent="submit" @input="clearMessages">
         <div v-if="register" class="names">
-          <label>First name <input name="firstName" autocomplete="given-name" required /></label>
-          <label>Last name <input name="lastName" autocomplete="family-name" required /></label>
+          <label>
+            First name
+            <input v-model="firstName" name="firstName" autocomplete="given-name" required />
+          </label>
+          <label>
+            Last name
+            <input v-model="lastName" name="lastName" autocomplete="family-name" required />
+          </label>
         </div>
-        <label>Work email <input v-model="email" name="email" type="email" :autocomplete="register ? 'email' : 'username'" required /></label>
-        <label v-if="register">Organization number <input name="organizationNumber" required /></label>
-        <label v-else>Password <input v-model="password" name="password" type="password" autocomplete="current-password" required /></label>
+
+        <label>
+          Work email
+          <input
+            v-model="email"
+            name="email"
+            type="email"
+            :autocomplete="register ? 'email' : 'username'"
+            required
+          />
+        </label>
+
+        <label v-if="register">
+          Organization number
+          <input v-model="organizationNumber" name="organizationNumber" required />
+        </label>
+        <label v-else>
+          Password
+          <input
+            v-model="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+
         <button class="button" type="submit" :disabled="submitting">
-          {{ register ? 'Continue' : submitting ? 'Logging in…' : 'Log in' }}
+          <template v-if="register">{{ submitting ? 'Sending…' : 'Continue' }}</template>
+          <template v-else>{{ submitting ? 'Logging in…' : 'Log in' }}</template>
         </button>
+
         <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <p v-if="notice" class="notice" role="status">This form is a preview. Account services are pending.</p>
+        <p v-if="notice" class="notice" role="status">
+          Check your inbox for your verification link.
+        </p>
       </form>
+
       <p class="switch">
         {{ register ? 'Already have an account?' : 'New to BizPartnerCheck?' }}
         <RouterLink :to="register ? '/login' : '/register'">

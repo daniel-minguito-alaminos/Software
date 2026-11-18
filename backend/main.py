@@ -1,20 +1,25 @@
 import re
-import httpx
-from fastapi import FastAPI
-from fastapi import HTTPException
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-from pydantic import BaseModel
+
+from api_token_auth import ApiTokenOrganization
 from database import engine
-from routers import auth
+from routers import api_tokens, auth, partner_checks
+from vies import check_vat_number
 
 app = FastAPI(title="BizPartnerCheck API")
 app.include_router(auth.router)
+app.include_router(api_tokens.router)
+app.include_router(partner_checks.router)
 
 
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
 
 @app.get("/health/database")
 def database_health_check():
@@ -28,8 +33,6 @@ def database_health_check():
         ) from exc
 
     return {"database": "connected"}
-
-VIES_URL = "https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number"
 
 
 class VatCheckRequest(BaseModel):
@@ -46,32 +49,10 @@ async def check_vat(body: VatCheckRequest):
             detail="Enter a VAT number with a country prefix, for example ATU12345678.",
         )
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                VIES_URL,
-                json={
-                    "countryCode": vat_number[:2],
-                    "vatNumber": vat_number[2:],
-                },
-            )
-            response.raise_for_status()
-            result = response.json()
-    except (httpx.HTTPError, ValueError):
-        raise HTTPException(
-            status_code=503,
-            detail="VIES is temporarily unavailable. Please try again later.",
-        )
+    valid = await check_vat_number(vat_number)
+    return {"vat_number": vat_number, "valid": valid}
 
-    if (
-        not isinstance(result, dict)
-        or result.get("actionSucceed") is False
-        or result.get("errorWrappers")
-        or not isinstance(result.get("valid"), bool)
-    ):
-        raise HTTPException(
-            status_code=503,
-            detail="VIES could not complete the check. Please try again later.",
-        )
 
-    return {"vat_number": vat_number, "valid": result["valid"]}
+@app.get("/test/api-token")
+def test_api_token(organization_id: ApiTokenOrganization):
+    return {"organization_id": organization_id}

@@ -16,7 +16,7 @@ import argparse
 import getpass
 import sys
 
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, select
 
 from database import engine
 from models import User, normalize_email
@@ -45,9 +45,6 @@ def main() -> int:
     if getpass.getpass("Repeat password: ") != password:
         print("The passwords do not match.", file=sys.stderr)
         return 1
-
-    # Only creates the provisional "users" table; other tables are untouched.
-    SQLModel.metadata.create_all(engine, tables=[User.__table__])
 
     with Session(engine) as session:
         user = session.exec(select(User).where(User.email == email)).first()

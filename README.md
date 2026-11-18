@@ -98,6 +98,38 @@ Start the backend:
 
 Stop the server with Ctrl+C.
 
+#### PostgreSQL migrations (BIZ-34)
+
+Run these commands in `backend` after installing the requirements and setting
+`DATABASE_URL` in `backend/.env`. Alembic uses the same PostgreSQL connection
+as FastAPI. Use the team's Render database URL when migrating that database.
+
+```cmd
+python -m alembic upgrade head
+python -m alembic current
+python -m alembic upgrade head
+python -m scripts.check_organization_schema
+```
+
+The current revision should be `0002_organizations (head)` immediately after
+BIZ-34, or a later revision if more migrations have since been added. The
+second upgrade should have no pending revisions. The verification script
+inserts and reads an organization and its linked user in one transaction, then
+rolls it back.
+
+The migration enforces unique organization numbers, user emails and Supabase
+UUIDs. It links each user to an organization through a foreign key. Legacy
+users can retain their local password hashes and can be migrated to an
+organization later. Supabase users can be stored without a local password
+hash.
+
+If a database already contains the original `users` table created by the
+BIZ-32 script and no Alembic history, inspect its schema first. If it matches
+`0001_users_baseline` exactly (including the unique email index), record the
+baseline with `python -m alembic stamp 0001_users_baseline` before
+`python -m alembic upgrade head`. An empty database should run `upgrade head`
+directly.
+
 #### Test user (provisional)
 
 Registration and email verification are not implemented yet
@@ -108,11 +140,8 @@ is asked for interactively:
 .\.venv\Scripts\python.exe -m scripts.create_test_user tester@example.com
 ```
 
-The script creates the `users` table if needed. If the email already
-exists, its password is replaced and the user is marked as verified.
-
-The `User` model in `backend/models.py` is provisional (BIZ-32); the
-final user and organization schema (BIZ-34) will replace or extend it.
+Apply the database migrations first. If the email already exists, the script
+replaces its local password and marks the test user as verified.
 
 #### Backend tests
 

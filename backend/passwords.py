@@ -13,5 +13,9 @@ def hash_password(password: str) -> str:
     return _password_hash.hash(password)
 
 
-def verify_password(password: str, password_hash: str) -> bool:
+def verify_password(password: str, password_hash: str | None) -> bool:
+    if password_hash is None:
+        _password_hash.verify(password, DUMMY_PASSWORD_HASH)
+        return False
+
     return _password_hash.verify(password, password_hash)

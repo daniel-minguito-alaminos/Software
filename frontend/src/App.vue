@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { currentUser, loadSession, signOut } from './auth/session'
-import VatCheck from './VatCheck.vue'
+
 
 const router = useRouter()
 const signingOut = ref(false)
@@ -43,7 +43,6 @@ async function logOut() {
       </nav>
     </header>
     <RouterView :key="$route.path" />
-    <VatCheck v-if="currentUser && $route.path === '/app'" />
   </div>
 </template>
 

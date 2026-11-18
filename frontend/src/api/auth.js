@@ -1,4 +1,4 @@
-// Calls to the backend authentication endpoints (BIZ-32).
+// Calls to the backend API.
 // The session lives in an HttpOnly cookie set by the backend; JavaScript
 // never reads or stores the token.
 
@@ -15,7 +15,7 @@ export class ApiError extends Error {
 const UNREACHABLE = 'The server is not available right now. Please try again later.'
 const GENERIC = 'Something went wrong. Please try again.'
 
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   let response
   try {
     response = await fetch(`${API_BASE}${path}`, {
@@ -60,4 +60,16 @@ export async function getCurrentUser() {
     if (error.status === 401) return null
     throw error
   }
+}
+
+export function registerOrganization({ firstName, lastName, email, organizationNumber }) {
+  return request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      organization_number: organizationNumber,
+    }),
+  })
 }
